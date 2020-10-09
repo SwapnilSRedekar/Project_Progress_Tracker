@@ -32,6 +32,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 
 import static com.example.projectprogresstracker.data.ProjectContract.ProjectEntry.ACTIVITY_ID;
 import static com.example.projectprogresstracker.data.ProjectContract.ProjectEntry.ACTIVITY_TABLE_NAME;
@@ -61,6 +62,7 @@ public class TaskDetails extends AppCompatActivity implements AdapterView.OnItem
     Calendar calender;
     FloatingActionButton fabAddActivity;
     ProgressView taskProgressView;
+    ProjectDetails pr = new ProjectDetails();
 
     @Override
     protected void onPostResume() {
@@ -91,6 +93,8 @@ public class TaskDetails extends AppCompatActivity implements AdapterView.OnItem
         taskListView.setOnItemClickListener(this);
         mTaskAdapter = new TaskAdapter(this, activityArrayList);
         taskListView.setAdapter(mTaskAdapter);
+        sdf = new SimpleDateFormat("yyyy-MM-dd");
+        inputFormat = new SimpleDateFormat("yyyy-MM-dd");
 
 
 /**
@@ -170,12 +174,36 @@ public class TaskDetails extends AppCompatActivity implements AdapterView.OnItem
         tvTaskEndDate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Get Current Date
-                final Calendar c = Calendar.getInstance();
-                int mEndYear = c.get(Calendar.YEAR);
-                int mEndMonth = c.get(Calendar.MONTH);
-                int mEndDay = c.get(Calendar.DAY_OF_MONTH);
 
+//                String[] datess = pr.queryProject();
+//                String projectStartDate = datess[0];
+                Bundle b = getIntent().getExtras();
+
+                String projectStartDate = b.getString("projectStartDate");
+//                String projectEndDate = datess[1];
+                String projectEndDate = b.getString("projectEndDate");
+                String dates = queryTask();
+                int ab[] = dates(dates);
+
+                int mEndYear = ab[0];
+                int mEndMonth = ab[1];
+                int mEndDay = ab[2];
+
+                long taskMinDate = 0;
+                long taskMaxDate = 0;
+
+                try {
+                    Date dd = inputFormat.parse(projectStartDate);
+                    taskMinDate = dd.getTime();
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    Date dd = inputFormat.parse(projectEndDate);
+                    taskMaxDate = dd.getTime();
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
 
                 DatePickerDialog datePickerDialog = new DatePickerDialog(TaskDetails.this,
                         new DatePickerDialog.OnDateSetListener() {
@@ -204,7 +232,9 @@ public class TaskDetails extends AppCompatActivity implements AdapterView.OnItem
 
 
                             }
-                        }, mEndYear, mEndMonth, mEndDay);
+                        }, mEndYear, mEndMonth-1, mEndDay);
+                datePickerDialog.getDatePicker().setMinDate(taskMinDate);
+                datePickerDialog.getDatePicker().setMaxDate(taskMaxDate);
                 datePickerDialog.show();
             }
         });
@@ -214,15 +244,35 @@ public class TaskDetails extends AppCompatActivity implements AdapterView.OnItem
          */
         Bundle extras = getIntent().getExtras();
         mId = extras.getInt("mId");
+
         queryAllActivity();
         queryTask();
     }
 
+    public int[] dates(String date){
+        String[] dateSeparator;
+        String yearsInDB = "";
+        String monthsInDB = "";
+        String daysInDB = "";
+        dateSeparator = date.split("-");
+        yearsInDB = dateSeparator[0];
+        monthsInDB = dateSeparator[1];
+        daysInDB = dateSeparator[2];
+
+        int[] splittedDate = new int[3];
+        splittedDate[0] = Integer.parseInt(yearsInDB);
+        splittedDate[1] = Integer.parseInt(monthsInDB);
+        splittedDate[2] = Integer.parseInt(daysInDB);
+
+        return splittedDate;
+    }
 
     /**
      * query task and update UI
      */
-    public void queryTask() {
+    public String queryTask() {
+
+        String mTaskEndDate = "";
         String[] projection = {
                 COLUMN_TASK_NAME, COLUMN_TASK_DESCRIPTION, COLUMN_TASK_END_DATE, COLUMN_TASK_PROGRESS
         };
@@ -248,7 +298,7 @@ public class TaskDetails extends AppCompatActivity implements AdapterView.OnItem
 
             String mTaskName = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_NAME));
             String mTaskDesc = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_DESCRIPTION));
-            String mTaskEndDate = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_END_DATE));
+            mTaskEndDate = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_END_DATE));
             String mTaskProgress = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_PROGRESS));
 
             tvTaskName.setText(mTaskName);
@@ -261,9 +311,10 @@ public class TaskDetails extends AppCompatActivity implements AdapterView.OnItem
             taskProgressView.setProgress(Integer.parseInt(mTaskProgress));
 
             cursor.close();
+
         }
 
-
+        return mTaskEndDate;
     }
 
 
